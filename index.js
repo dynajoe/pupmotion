@@ -11,8 +11,13 @@ app.use('/api', require('./api'));
 
 var MotionSensor = require('./data/motion_sensor');
 var ms = new MotionSensor();
+
 ms.on('data', function (data) {
 	console.log(data);
+});
+
+ms.initialize(function () {
+    
 });
 
 app.listen(3000);

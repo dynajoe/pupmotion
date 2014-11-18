@@ -1,15 +1,16 @@
 var serialPort = require('serialport');
-var child_process = require('child_process');
+var childProcess = require('child_process');
 var os = require('os');
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
+var usbDeviceName = "cu.usbmodem1411";
 
 var getPortConnect = function (callback) {
    if (os.platform() === 'win32') {
       return callback(null, 'COM5');
    }
 
-   child_process.exec('ls /dev | grep cu.usbserial', function (err, stdout) {
+   childProcess.exec('ls /dev | grep ' + usbDeviceName, function (err, stdout) {
       var ports = stdout.trim().split('\n');
 
       if (ports.length == 0 || !ports[0]) {
@@ -42,7 +43,7 @@ MotionSensor.prototype.initialize = function (callback) {
       } 
 
       var port = new serialPort.SerialPort(discoveredPort, {
-         baudrate: 9600,
+         baudrate: 57600,
          parser: serialPort.parsers.readline('\n') 
       }); 
 
