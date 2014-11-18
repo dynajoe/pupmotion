@@ -2,8 +2,14 @@ $(function () {
    
     var socket = io();
 
+    var addPoint = function (series, ticks, value) {
+        series.addPoint([ticks, value], true, series.data.length > 100);
+    };
+
     socket.on('data', function (data) {
-       console.log(data);
+        addPoint(chart.series[0], data.ticks, data.led1);
+        addPoint(chart.series[1], data.ticks, data.led2);
+        addPoint(chart.series[2], data.ticks, data.led3);
     });
 
     Highcharts.setOptions({
@@ -27,7 +33,7 @@ $(function () {
             }
         },
         title: {
-            text: 'Live random data'
+            text: 'Gesture Sensor Data'
         },
         xAxis: {
             type: 'linear',
@@ -37,21 +43,16 @@ $(function () {
             title: {
                 text: 'Value'
             },
+            max: 20000,
+            min: 0,
             plotLines: [{
                 value: 0,
                 width: 1,
                 color: '#808080'
             }]
         },
-        tooltip: {
-            formatter: function () {
-                return '<b>' + this.series.name + '</b><br/>' +
-                    Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x) + '<br/>' +
-                    Highcharts.numberFormat(this.y, 2);
-            }
-        },
         legend: {
-            enabled: false
+            enabled: true
         },
         exporting: {
             enabled: false
@@ -62,25 +63,13 @@ $(function () {
             data: []
         },
         {
-        	   name: 'LED2',
-        	   data: []
+            name: 'LED2',
+            data: []
         },
         {
-        	   name: 'LED3',
-        	   data: []
+            name: 'LED3',
+            data: []
         }]
     });
-
-	
-   setInterval(function () {
-		var series = chart.series[0];
-		var x = (new Date()).getTime(), // current time
-		 y = Math.random();
-
-		if (series.data.length > 250) 
-		series.addPoint([x, y], true, true);
-		else
-		series.addPoint([x, y], true, false);
-	}, 100);
 
 });
