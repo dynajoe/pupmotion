@@ -9,4 +9,10 @@ app.get('/', function (req, res) {
 
 app.use('/api', require('./api'));
 
+var MotionSensor = require('./data/motion_sensor');
+var ms = new MotionSensor();
+ms.on('data', function (data) {
+	console.log(data);
+});
+
 app.listen(3000);
