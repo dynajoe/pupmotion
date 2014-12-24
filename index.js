@@ -17,25 +17,26 @@ var MotionSensor = require('./data/motion_sensor');
 
 var ms = new MotionSensor();
 
-ms.initialize(function () {
-
+ms.initialize(function (err) {
+    //console.log(err);
 });
 
 var count = 0;
 var start = +new Date();
 
 ms.on('data', function (data) {
+    count++;
     if (count % 5 == 0) {
         io.sockets.emit('data', data);    
     }
+});
 
-    count++;
-    
-    if (count % 100 == 0) {
-        console.log((count / ((+new Date() - start) / 1000)) + " per sec");
-        start = +new Date();
-        count = 0;
-    }
+ms.on('inside', function () {
+    io.sockets.emit('inside');
+});
+
+ms.on('outside', function () {
+    io.sockets.emit('outside');
 });
 
 http.listen(3000);

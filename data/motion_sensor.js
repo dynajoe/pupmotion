@@ -3,7 +3,8 @@ var childProcess = require('child_process');
 var os = require('os');
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
-var usbDeviceName = "cu.usbmodem1411";
+var _ = require('underscore');
+var usbDeviceName = "cu.usbmodem1421";
 
 var getPortConnect = function (callback) {
    if (os.platform() === 'win32') {
@@ -24,6 +25,8 @@ var getPortConnect = function (callback) {
 var MotionSensor = function () {
    EventEmitter.call(this);
    this.port = null;
+   this.threshold = 3000;
+   this.buffer = [];
 };
 
 util.inherits(MotionSensor, EventEmitter)
@@ -48,15 +51,67 @@ MotionSensor.prototype.initialize = function (callback) {
       }); 
 
       port.on('data', function (data) {
-         try { MotionSensor.emit('data', JSON.parse(data)); } catch(e) { }
-      });
+         try { 
+            data = JSON.parse(data);
+            this.emit('data', data); 
+            this.addPoints(data);
+         } catch(e) { 
+            //console.log(e);
+         }
+      }.bind(this));
 
       MotionSensor.port = port;
 
       callback(null);
-   });
+   }.bind(this));
 
   return this;
+};
+
+MotionSensor.prototype.addPoints = function (points) {
+
+   var aboveThreshold = _.some([points.led1, points.led2, points.led3], function (v) {
+      return v > this.threshold;
+   }.bind(this));
+
+   if (!aboveThreshold) {
+      if (this.buffer.length > 0) {
+         this.endEvent();
+      }
+   } else {
+      this.buffer.push(points);
+   }
+   
+};
+
+MotionSensor.prototype.endEvent = function  () {
+   this.detectEvent();
+   this.buffer.length = 0;
+};
+
+MotionSensor.prototype.detectEvent = function () {
+   var maxes = this.getMaxValues();
+
+   if (maxes.led1.ticks > maxes.led3.ticks) {
+      this.emit("inside");
+   } else {
+      this.emit("outside");
+   }
+};
+
+MotionSensor.prototype.getMaxValues = function () {
+   var leds = ["led1", "led2", "led3"];
+
+   var maxes = _.reduce(this.buffer, function (acc, v) {
+      _.each(leds, function (k) {
+         if (!acc[k] || v[k] > acc[k].value) {
+            acc[k] = { ticks: v.ticks, value: v[k] };
+         }
+      });
+      return acc;
+   }, {});
+
+   return maxes;
 };
 
 module.exports = MotionSensor;

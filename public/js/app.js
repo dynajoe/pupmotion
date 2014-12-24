@@ -1,15 +1,31 @@
 $(function () {
-   
+    $('#direction').text('None');
+    
+    window.setPicture = (function () {
+        var num = 0;
+        return function (name) {
+            $('#direction').html("<img width=300 src=\"images/" + name + ((num++ % 2) + 1) + ".jpg\"><br/>" + name);
+        };
+    })();
+
     var socket = io();
+    
+    socket.on('data', function (data) {
+        addPoint(chart.series[0], data.ticks, data.led1);
+        addPoint(chart.series[1], data.ticks, data.led2);
+        addPoint(chart.series[2], data.ticks, data.led3);
+    });
 
     var addPoint = function (series, ticks, value) {
         series.addPoint([ticks, value], true, series.data.length > 100);
     };
 
-    socket.on('data', function (data) {
-        addPoint(chart.series[0], data.ticks, data.led1);
-        addPoint(chart.series[1], data.ticks, data.led2);
-        addPoint(chart.series[2], data.ticks, data.led3);
+    socket.on('inside', function () {
+        setPicture('inside');
+    });
+
+    socket.on('outside', function () {
+        setPicture('outside');
     });
 
     Highcharts.setOptions({
@@ -71,5 +87,4 @@ $(function () {
             data: []
         }]
     });
-
 });

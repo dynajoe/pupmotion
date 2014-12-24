@@ -14,6 +14,7 @@
     "jade": "^1.7.0",
     "serialport": "^1.4.6",
     "socket.io": "^1.2.0",
-    "stylus": "^0.49.3"
+    "stylus": "^0.49.3",
+    "underscore": "^1.7.0"
   }
 }
