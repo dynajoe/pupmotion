@@ -27,7 +27,7 @@ var start = +new Date();
 ms.on('data', function (data) {
     count++;
     if (count % 5 == 0) {
-        io.sockets.emit('data', data);    
+        io.sockets.emit('data', data);
     }
 });
 

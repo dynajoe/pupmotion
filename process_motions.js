@@ -44,36 +44,21 @@ Collector.prototype.detectEvent = function () {
 	}, {});
 
 	if (maxes.led1.ticks > maxes.led3.ticks) {
-<<<<<<< HEAD
 		this.emit("inside");
 	} else {
 		this.emit("outside");
-=======
-		this.emit("left");
-	} else {
-		this.emit("right");
->>>>>>> 995cf9be05586dfef78a7905bc0619de7c996401
 	}
 };
 
 var c = new Collector();
 
-<<<<<<< HEAD
 c.on('inside', function () {
 	console.log('inside');
-})
+});
 
 c.on('outside', function () {
 	console.log('outside');
-=======
-c.on('left', function () {
-	console.log('left');
-})
-
-c.on('right', function () {
-	console.log('right');
->>>>>>> 995cf9be05586dfef78a7905bc0619de7c996401
-})
+});
 
 _.each(test_data, function (d) {
 	c.addPoints(d);

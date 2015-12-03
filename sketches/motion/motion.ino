@@ -18,7 +18,7 @@
 #ifndef SI1143_h
 #define SI1143_h
 
-#include <WProgram.h> // for byte data type
+#include <Arduino.h> // for byte data type
 #define IR_ADDRESS 0x5A
 
 // register addresses
