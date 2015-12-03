@@ -3,7 +3,7 @@ var childProcess = require('child_process');
 var os = require('os');
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
-var _ = require('underscore');
+var _ = require('lodash');
 var usbDeviceName = "cu.usbmodem1411";
 
 var getPortConnect = function (callback) {
@@ -22,11 +22,24 @@ var getPortConnect = function (callback) {
    });
 };
 
+var STATE = {
+   ABOVE: 1,
+   BELOW: 2,
+};
+
+var LEDS = {
+   LEFT: 'led1',
+   TOP: 'led2',
+   RIGHT: 'led3',
+};
+
 var MotionSensor = function () {
    EventEmitter.call(this);
    this.port = null;
-   this.threshold = 3000;
+   this.threshold = 1000;
    this.buffer = [];
+   this.maxBufferSize = 50;
+   this.state = STATE.BELOW;
 };
 
 util.inherits(MotionSensor, EventEmitter)
@@ -38,8 +51,6 @@ MotionSensor.prototype.send = function (command) {
 };
 
 MotionSensor.prototype.initialize = function (callback) {
-   console.log('initialize motion sensor');
-
    var MotionSensor = this;
 
    getPortConnect(function (err, discoveredPort) {
@@ -56,13 +67,17 @@ MotionSensor.prototype.initialize = function (callback) {
       port.on('data', function (data) {
          try {
             data = JSON.parse(data);
-            this.emit(data.type, data);
-
-            if (data.type === "data") {
-               this.addPoints(data);
-            }
          } catch (e) {
             //console.log(e);
+            return;
+         }
+
+         data.threshold = this.threshold;
+
+         this.emit(data.type, data);
+
+         if (data.type === "data") {
+            this.addPoints(data);
          }
       }.bind(this));
 
@@ -75,36 +90,60 @@ MotionSensor.prototype.initialize = function (callback) {
 };
 
 MotionSensor.prototype.addPoints = function (points) {
-   var aboveThreshold = _.some([points.led1, points.led2, points.led3], function (v) {
+   this.buffer.push(points);
+
+   var aboveThreshold = _.all([points[LEDS.LEFT], points[LEDS.RIGHT]], function (v) {
       return v > this.threshold;
    }.bind(this));
 
-   if (!aboveThreshold) {
-      if (this.buffer.length > 0) {
-         this.endEvent();
-      }
+   var oldState = this.state;
+
+   if (aboveThreshold) {
+      this.state = STATE.ABOVE;
    } else {
-      this.buffer.push(points);
+      this.state = STATE.BELOW;
+   }
+
+   if (oldState != this.state) {
+      this.endEvent();
+   }
+
+   if (this.buffer.length >= this.maxBufferSize) {
+      this.buffer = this.buffer.slice(-this.maxBufferSize);
    }
 };
 
-MotionSensor.prototype.endEvent = function  () {
+MotionSensor.prototype.endEvent = function () {
    this.detectEvent();
-   this.buffer.length = 0;
+   this.buffer = [];
 };
 
-MotionSensor.prototype.detectEvent = function () {
-   var maxes = this.getMaxValues();
+var leds = [LEDS.LEFT, LEDS.RIGHT];
 
-   if (maxes.led1.ticks > maxes.led3.ticks) {
-      this.emit("inside");
+MotionSensor.prototype.detectEvent = function () {
+   var that = this;
+
+   var last = _.findLast(this.buffer, function (v) {
+      var aboveThreshold = _.filter(leds, function (k) {
+         return v[k] >= that.threshold;
+      });
+
+      return aboveThreshold.length != leds.length;
+   });
+
+   if (!last) {
+      return;
+   }
+
+   if (last.led1 > last.led3) {
+      this.emit('left');
    } else {
-      this.emit("outside");
+      this.emit('right');
    }
 };
 
 MotionSensor.prototype.getMaxValues = function () {
-   var leds = ["led1", "led2", "led3"];
+   var leds = [LEDS.LEFT, LEDS.RIGHT];
 
    var maxes = _.reduce(this.buffer, function (acc, v) {
       _.each(leds, function (k) {
@@ -112,6 +151,7 @@ MotionSensor.prototype.getMaxValues = function () {
             acc[k] = { ticks: v.ticks, value: v[k] };
          }
       });
+
       return acc;
    }, {});
 

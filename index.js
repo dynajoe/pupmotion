@@ -22,21 +22,25 @@ ms.initialize(function (err) {
 });
 
 var count = 0;
-var start = +new Date();
 
 ms.on('data', function (data) {
     count++;
-    if (count % 5 == 0) {
+
+    if (count % 3 == 0) {
         io.sockets.emit('data', data);
     }
 });
 
-ms.on('inside', function () {
-    io.sockets.emit('inside');
+ms.on('bias', function (bias) {
+    io.sockets.emit('bias', bias);
 });
 
-ms.on('outside', function () {
-    io.sockets.emit('outside');
+ms.on('left', function () {
+    io.sockets.emit('left');
+});
+
+ms.on('right', function () {
+    io.sockets.emit('right');
 });
 
 http.listen(3000);
