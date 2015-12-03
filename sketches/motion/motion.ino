@@ -1,11 +1,11 @@
 /* Si1143 Example
 
- by Jiten Chandiramani 
+ by Jiten Chandiramani
  Jaycon Systems LLC
 
  Demonstrates some of the Features of the Si1143 Digital IR/Ambient Light sensor.
  Created 16 November 2012
- 
+
  Complied with Arduino 1.0.1
  */
 
@@ -80,7 +80,7 @@
 
 #define I2C_ADDR                  0x00
 #define CHLIST                    0x01
-#define PSLED12_SELECT            0x02  
+#define PSLED12_SELECT            0x02
 #define PSLED3_SELECT             0x03
 #define PS_ENCODING               0x05
 #define ALS_ENCODING              0x06
@@ -120,28 +120,28 @@ class LSM303DLH
     {
       float x, y, z;
     } vector;
-    
+
     vector a; // accelerometer readings
     vector m; // magnetometer readings
     vector m_max; // maximum magnetometer values, used for calibration
     vector m_min; // minimum magnetometer values, used for calibration
-  
+
     LSM303DLH(void);
-    
+
     void enableDefault(void);
-    
+
     void writeAccReg(byte reg, byte value);
     byte readAccReg(byte reg);
     void writeMagReg(byte reg, byte value);
     byte readMagReg(byte reg);
-    
+
     void readAcc(void);
     void readMag(void);
     void read(void);
-    
+
     int heading(void);
     int heading(vector from);
-    
+
     // vector functions
     static void vector_cross(const vector *a, const vector *b, vector *out);
     static float vector_dot(const vector *a,const vector *b);
@@ -164,18 +164,19 @@ int bias1,bias2,bias3,PS1,PS2,PS3 = 0;
 int blinktime,counter,Ledposition;
 byte LowB,HighB;
 bool selected;
+unsigned long lastBiasAt = 0;
 
 void setup()
 {
-  Serial.begin(9600);  
-  Wire.begin(); 
+  Serial.begin(9600);
+  Wire.begin();
   delay(25);
-  
+
   write_reg(HW_KEY, 0x17); // Setting up LED Power to full
   write_reg(PS_LED21,0xFF);
   write_reg(PS_LED3, 0x0F);
   param_set(CHLIST,0b00010111);
-  
+
   char parameter = read_reg(PARAM_RD,1);
   delay(200);
   bias();
@@ -185,20 +186,25 @@ void loop()
 {
   write_reg(COMMAND,0b00000101); // Get a reading
   delay(5);
-  
+
   LowB = read_reg(PS1_DATA0,1); // Read the data for the first LED
   HighB = read_reg(PS1_DATA1,1);
   PS1 = ((HighB * 255) + LowB) - bias1;
-  
+
   LowB = read_reg(PS2_DATA0,1);  // Read the data for the second LED
   HighB = read_reg(PS2_DATA1,1);
   PS2 = (HighB * 255) + LowB - bias2;
-  
+
   LowB = read_reg(PS3_DATA0,1);  // Read the data for the third LED
   HighB = read_reg(PS3_DATA1,1);
   PS3 = (HighB * 255) + LowB - bias3;
-  
-  Serial << "{ \"led1\": " << PS1 << ", \"led2\": " << PS2 << ", \"led3\": " << PS3 << ", \"ticks\": " << millis() << " }" << endl;
+
+  if (millis() - lastBiasAt >= 15000) {
+    lastBiasAt = millis();
+    Serial << "{ \"type\": \"bias\", \"bias1\": " << bias1 << ", \"bias2\": " << bias2 << ", \"bias3\": " << bias3 << ", \"ticks\": " << millis() << " }" << endl;
+  }
+
+  Serial << "{ \"type\": \"data\", \"led1\": " << PS1 << ", \"led2\": " << PS2 << ", \"led3\": " << PS3 << ", \"ticks\": " << millis() << " }" << endl;
 }
 
 unsigned int read_light(){  // Read light sensor
@@ -224,40 +230,39 @@ char read_reg(unsigned char address, int num_data) // Read a Register
   Wire.endTransmission();
 
   Wire.requestFrom(IR_ADDRESS, num_data);
-  
+
   while(Wire.available() < num_data);
-  
+
   return Wire.read();
 }
 
 void write_reg(byte address, byte val) {  // Write a resigter
-  Wire.beginTransmission(IR_ADDRESS); 
-  Wire.write(address);      
-  Wire.write(val);       
-  Wire.endTransmission();     
+  Wire.beginTransmission(IR_ADDRESS);
+  Wire.write(address);
+  Wire.write(val);
+  Wire.endTransmission();
 }
 
-void bias(void){  // Bias during start up
-  
-  for (int i=0; i<20; i++){
-  write_reg(COMMAND,0b00000101);
-  delay(50);
-  
-  byte LowB = read_reg(PS1_DATA0,1);
-  byte HighB = read_reg(PS1_DATA1,1);
-  
-  bias1 += ((HighB * 255) + LowB) / 20;
-  
-  LowB = read_reg(PS2_DATA0,1);
-  HighB = read_reg(PS2_DATA1,1);
-  
-  bias2 += ((HighB * 255) + LowB) / 20;
-  
-  LowB = read_reg(PS3_DATA0,1);
-  HighB = read_reg(PS3_DATA1,1);
-  
-  bias3 += ((HighB * 255) + LowB) / 20;
- }  
+void bias() {  // Bias during start up
+  for (int i = 0; i < 10; i++) {
+    write_reg(COMMAND,0b00000101);
+    delay(50);
+
+    byte LowB = read_reg(PS1_DATA0,1);
+    byte HighB = read_reg(PS1_DATA1,1);
+
+    bias1 += ((HighB * 255) + LowB) / 10;
+
+    LowB = read_reg(PS2_DATA0,1);
+    HighB = read_reg(PS2_DATA1,1);
+
+    bias2 += ((HighB * 255) + LowB) / 10;
+
+    LowB = read_reg(PS3_DATA0,1);
+    HighB = read_reg(PS3_DATA1,1);
+
+    bias3 += ((HighB * 255) + LowB) / 10;
+  }
 }
 
 

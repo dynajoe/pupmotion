@@ -56,8 +56,11 @@ MotionSensor.prototype.initialize = function (callback) {
       port.on('data', function (data) {
          try {
             data = JSON.parse(data);
-            this.emit('data', data);
-            this.addPoints(data);
+            this.emit(data.type, data);
+
+            if (data.type === "data") {
+               this.addPoints(data);
+            }
          } catch (e) {
             //console.log(e);
          }
@@ -72,7 +75,6 @@ MotionSensor.prototype.initialize = function (callback) {
 };
 
 MotionSensor.prototype.addPoints = function (points) {
-
    var aboveThreshold = _.some([points.led1, points.led2, points.led3], function (v) {
       return v > this.threshold;
    }.bind(this));

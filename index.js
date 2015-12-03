@@ -18,7 +18,7 @@ var MotionSensor = require('./data/motion_sensor');
 var ms = new MotionSensor();
 
 ms.initialize(function (err) {
-    //console.log(err);
+    console.log(err);
 });
 
 var count = 0;
